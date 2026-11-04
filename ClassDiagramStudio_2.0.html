@@ -1,0 +1,1934 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>UML Class Studio - Web Diagram Editor & Code Generator</title>
+  
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#f0f7ff',
+              100: '#e0effe',
+              500: '#0284c7',
+              600: '#0369a1',
+              700: '#075985'
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- Font Awesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  
+  <!-- Inter & Fira Code Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+
+  <!-- jsPDF for High Quality PDF Export -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+      touch-action: manipulation;
+    }
+    .code-font {
+      font-family: 'Fira Code', monospace;
+    }
+    .canvas-bg {
+      background-size: 24px 24px;
+      background-image: 
+        radial-gradient(circle, rgba(148, 163, 184, 0.25) 1px, transparent 1px);
+    }
+    .dark .canvas-bg {
+      background-image: 
+        radial-gradient(circle, rgba(71, 85, 105, 0.35) 1px, transparent 1px);
+    }
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+      border-radius: 4px;
+    }
+    .dark ::-webkit-scrollbar-thumb {
+      background: #475569;
+    }
+  </style>
+</head>
+<body class="h-full bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-100 flex flex-col overflow-hidden select-none">
+
+  <!-- TOP HEADER TOOLBAR -->
+  <header class="h-14 bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 px-3 md:px-4 flex items-center justify-between z-20 shrink-0">
+    <div class="flex items-center space-x-2 md:space-x-3">
+      <!-- Mobile Drawer Toggle Button -->
+      <button id="btn-toggle-sidebar" class="md:hidden p-2 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg">
+        <i class="fa-solid fa-bars text-lg"></i>
+      </button>
+
+      <div class="flex items-center space-x-2">
+        <div class="w-8 h-8 bg-sky-600 text-white rounded-lg flex items-center justify-center font-bold text-lg shadow-sm">
+          <i class="fa-solid fa-diagram-project"></i>
+        </div>
+        <div>
+          <h1 class="font-bold text-sm md:text-base leading-tight text-slate-900 dark:text-white">UML Class Studio</h1>
+          <p class="text-[10px] text-slate-500 dark:text-slate-400 hidden sm:block">Interactive Diagramming & Code Generator 2.0</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Quick Action Bar -->
+    <div class="flex items-center space-x-1 sm:space-x-2">
+      <!-- Zoom Controls -->
+      <div class="hidden sm:flex items-center bg-slate-100 dark:bg-slate-700/60 rounded-lg p-0.5 border border-slate-200 dark:border-slate-600 text-xs mr-1">
+        <button id="btn-zoom-out" class="p-1.5 hover:bg-white dark:hover:bg-slate-600 rounded text-slate-700 dark:text-slate-200" title="Zoom Out (-)">
+          <i class="fa-solid fa-minus"></i>
+        </button>
+        <span id="zoom-indicator" class="px-2 font-mono text-[11px] font-semibold text-slate-600 dark:text-slate-300 min-w-[42px] text-center">100%</span>
+        <button id="btn-zoom-in" class="p-1.5 hover:bg-white dark:hover:bg-slate-600 rounded text-slate-700 dark:text-slate-200" title="Zoom In (+)">
+          <i class="fa-solid fa-plus"></i>
+        </button>
+        <button id="btn-zoom-reset" class="px-1.5 py-1 hover:bg-white dark:hover:bg-slate-600 rounded text-[10px] font-medium text-slate-600 dark:text-slate-300 border-l border-slate-200 dark:border-slate-600" title="Reset Zoom">
+          1:1
+        </button>
+      </div>
+
+      <!-- Export Buttons -->
+      <button id="btn-export-java" class="px-2.5 py-1.5 bg-sky-600 hover:bg-sky-700 text-white text-xs font-medium rounded-lg flex items-center space-x-1 shadow-sm transition" title="Export Java Code">
+        <i class="fa-brands fa-java"></i>
+        <span class="hidden lg:inline">Java</span>
+      </button>
+
+      <button id="btn-export-cpp" class="px-2.5 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-medium rounded-lg flex items-center space-x-1 shadow-sm transition" title="Export C++ Code">
+        <i class="fa-solid fa-code"></i>
+        <span class="hidden lg:inline">C++</span>
+      </button>
+
+      <button id="btn-export-pdf" class="px-2.5 py-1.5 bg-slate-600 hover:bg-slate-700 text-white text-xs font-medium rounded-lg flex items-center space-x-1 shadow-sm transition" title="Export PDF Documentation">
+        <i class="fa-solid fa-file-pdf"></i>
+        <span class="hidden lg:inline">PDF</span>
+      </button>
+
+      <!-- Diagram Evaluator Button -->
+      <button id="btn-evaluate" class="px-2.5 py-1.5 bg-rose-600 hover:bg-rose-700 text-white text-xs font-medium rounded-lg flex items-center space-x-1.5 shadow-sm transition">
+        <i class="fa-solid fa-stethoscope"></i>
+        <span class="hidden md:inline">Evaluate Diagram</span>
+      </button>
+
+      <!-- Rules & Info Button -->
+      <button id="btn-show-rules" class="px-2.5 py-1.5 bg-slate-700 hover:bg-slate-800 text-white text-xs font-medium rounded-lg flex items-center space-x-1.5 shadow-sm transition">
+        <i class="fa-solid fa-book-bookmark"></i>
+        <span class="hidden md:inline">Diagram Rules</span>
+      </button>
+
+      <div class="h-5 w-px bg-slate-200 dark:bg-slate-700 mx-1 hidden sm:block"></div>
+
+      <!-- Save / Load Json Buttons -->
+      <button id="btn-save-json" class="p-1.5 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg text-sm" title="Save Diagram (JSON)">
+        <i class="fa-solid fa-download"></i>
+      </button>
+
+      <label class="p-1.5 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg text-sm cursor-pointer" title="Load Diagram (JSON)">
+        <i class="fa-solid fa-upload"></i>
+        <input type="file" id="file-input-json" accept=".json" class="hidden">
+      </label>
+
+      <!-- Theme Switcher -->
+      <button id="btn-theme-toggle" class="p-1.5 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg text-sm" title="Toggle Dark/Light Mode">
+        <i class="fa-solid fa-moon dark:hidden"></i>
+        <i class="fa-solid fa-sun hidden dark:inline"></i>
+      </button>
+    </div>
+  </header>
+
+  <!-- MAIN CONTENT AREA -->
+  <div class="flex-1 flex overflow-hidden relative">
+    
+    <!-- SIDEBAR TOOLBAR -->
+    <aside id="sidebar-drawer" class="absolute md:relative z-30 inset-y-0 left-0 w-64 bg-white dark:bg-slate-800 border-r border-slate-200 dark:border-slate-700 flex flex-col transition-transform duration-300 transform -translate-x-full md:translate-x-0 shadow-lg md:shadow-none">
+      
+      <div class="p-3 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between">
+        <span class="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Toolbox & Palette</span>
+        <button id="btn-close-sidebar" class="md:hidden text-slate-400 hover:text-slate-600 p-1">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <div class="flex-1 overflow-y-auto p-3 space-y-4">
+        
+        <!-- Add Class Components -->
+        <div>
+          <label class="text-[11px] font-semibold text-slate-400 uppercase tracking-wider block mb-2">Class Components</label>
+          <div class="grid grid-cols-1 gap-2">
+            <!-- Select / Move Mode Tool -->
+            <button id="btn-tool-select" class="p-2.5 bg-sky-50 dark:bg-sky-900/30 border border-sky-300 dark:border-sky-700 text-sky-700 dark:text-sky-200 rounded-lg text-left flex items-center justify-between text-xs font-medium transition tool-btn">
+              <span class="flex items-center space-x-2">
+                <i class="fa-solid fa-hand-pointer text-sky-600 dark:text-sky-400"></i>
+                <span>Move / Select Tool</span>
+              </span>
+              <i class="fa-solid fa-check check-icon"></i>
+            </button>
+
+            <button id="btn-add-class" class="p-2.5 bg-slate-50 dark:bg-slate-700/50 hover:bg-sky-50 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg text-left flex items-center space-x-2 text-xs font-medium transition group">
+              <span class="w-6 h-6 bg-sky-100 dark:bg-sky-900/50 text-sky-600 dark:text-sky-300 rounded flex items-center justify-center font-bold">C</span>
+              <span>Class</span>
+            </button>
+
+            <button id="btn-add-interface" class="p-2.5 bg-slate-50 dark:bg-slate-700/50 hover:bg-emerald-50 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg text-left flex items-center space-x-2 text-xs font-medium transition group">
+              <span class="w-6 h-6 bg-emerald-100 dark:bg-emerald-900/50 text-emerald-600 dark:text-emerald-300 rounded flex items-center justify-center font-bold">I</span>
+              <span>Interface</span>
+            </button>
+
+            <button id="btn-add-abstract" class="p-2.5 bg-slate-50 dark:bg-slate-700/50 hover:bg-amber-50 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg text-left flex items-center space-x-2 text-xs font-medium transition group">
+              <span class="w-6 h-6 bg-amber-100 dark:bg-amber-900/50 text-amber-600 dark:text-amber-300 rounded flex items-center justify-center font-bold">A</span>
+              <span>Abstract Class</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Relationship Modes -->
+        <div>
+          <label class="text-[11px] font-semibold text-slate-400 uppercase tracking-wider block mb-2">Connectors</label>
+          <div class="space-y-1.5" id="relationship-selector">
+            <button data-rel="association" class="w-full p-2 bg-sky-50 dark:bg-sky-900/30 border border-sky-300 dark:border-sky-700 text-sky-700 dark:text-sky-200 rounded-lg text-left flex items-center justify-between text-xs font-medium rel-btn">
+              <span class="flex items-center space-x-2">
+                <i class="fa-solid fa-arrow-right-long text-slate-400"></i>
+                <span>Association</span>
+              </span>
+              <i class="fa-solid fa-check check-icon"></i>
+            </button>
+
+            <button data-rel="inheritance" class="w-full p-2 bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 text-slate-700 dark:text-slate-300 rounded-lg text-left flex items-center justify-between text-xs font-medium rel-btn hover:bg-slate-100">
+              <span class="flex items-center space-x-2">
+                <i class="fa-solid fa-turn-up rotate-90 text-slate-400"></i>
+                <span>Inheritance (extends)</span>
+              </span>
+              <i class="fa-solid fa-check check-icon hidden"></i>
+            </button>
+
+            <button data-rel="implementation" class="w-full p-2 bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 text-slate-700 dark:text-slate-300 rounded-lg text-left flex items-center justify-between text-xs font-medium rel-btn hover:bg-slate-100">
+              <span class="flex items-center space-x-2">
+                <i class="fa-solid fa-ellipsis text-slate-400"></i>
+                <span>Implementation (implements)</span>
+              </span>
+              <i class="fa-solid fa-check check-icon hidden"></i>
+            </button>
+
+            <button data-rel="aggregation" class="w-full p-2 bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 text-slate-700 dark:text-slate-300 rounded-lg text-left flex items-center justify-between text-xs font-medium rel-btn hover:bg-slate-100">
+              <span class="flex items-center space-x-2">
+                <i class="fa-regular fa-gem text-slate-400"></i>
+                <span>Aggregation</span>
+              </span>
+              <i class="fa-solid fa-check check-icon hidden"></i>
+            </button>
+
+            <button data-rel="composition" class="w-full p-2 bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 text-slate-700 dark:text-slate-300 rounded-lg text-left flex items-center justify-between text-xs font-medium rel-btn hover:bg-slate-100">
+              <span class="flex items-center space-x-2">
+                <i class="fa-solid fa-gem text-slate-400"></i>
+                <span>Composition</span>
+              </span>
+              <i class="fa-solid fa-check check-icon hidden"></i>
+            </button>
+          </div>
+
+          <!-- Dedicated Link Delete Button -->
+          <button id="btn-delete-selected-conn" class="w-full mt-3 p-2.5 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900 text-rose-700 dark:text-rose-300 hover:bg-rose-100 dark:hover:bg-rose-900/60 rounded-lg text-left flex items-center justify-between text-xs font-medium transition shadow-sm">
+            <span class="flex items-center space-x-2">
+              <i class="fa-solid fa-trash-can text-rose-500"></i>
+              <span>Delete Selected Link</span>
+            </span>
+            <kbd class="px-1.5 py-0.5 bg-rose-200/60 dark:bg-rose-900 text-[10px] font-mono rounded">Del</kbd>
+          </button>
+          <p class="text-[10px] text-slate-400 mt-2 leading-tight">Click any connection line on the canvas to highlight it, then click "Delete Selected Link" or press <kbd class="font-mono">Delete</kbd>.</p>
+        </div>
+
+        <!-- Shortcuts Help Card -->
+        <div class="bg-slate-50 dark:bg-slate-700/30 p-2.5 rounded-lg border border-slate-200 dark:border-slate-700/60 text-xs space-y-1">
+          <div class="font-semibold text-slate-700 dark:text-slate-300 flex items-center space-x-1">
+            <i class="fa-solid fa-circle-info text-sky-500"></i>
+            <span>Quick Controls</span>
+          </div>
+          <ul class="list-disc list-inside space-y-1 text-[11px] leading-relaxed text-slate-500 dark:text-slate-400">
+            <li><strong class="text-slate-700 dark:text-slate-300">Move / Select Tool</strong>: Click & drag classes freely.</li>
+            <li><strong class="text-slate-700 dark:text-slate-300">Click Class + Target</strong>: Draws selected relationship.</li>
+            <li><strong class="text-slate-700 dark:text-slate-300">Escape Key</strong>: Cancel active draft or clear selection.</li>
+            <li><strong class="text-slate-700 dark:text-slate-300">Double Click Class</strong>: Edit attributes & operations.</li>
+            <li><strong class="text-slate-700 dark:text-slate-300">Right Click Line</strong>: Highlight & context menu options.</li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- Stats Footer -->
+      <div class="p-3 border-t border-slate-200 dark:border-slate-700 text-xs text-slate-500 flex justify-between">
+        <span>Classes: <strong id="stat-class-count" class="text-slate-700 dark:text-slate-300">0</strong></span>
+        <span>Connections: <strong id="stat-conn-count" class="text-slate-700 dark:text-slate-300">0</strong></span>
+      </div>
+    </aside>
+
+    <!-- CANVAS WORKSPACE -->
+    <main id="canvas-container" class="flex-1 h-full relative overflow-hidden bg-slate-100 dark:bg-slate-900 canvas-bg cursor-grab active:cursor-grabbing">
+      
+      <!-- Transform Layer containing Nodes -->
+      <div id="canvas-transform-layer" class="absolute inset-0 transform-origin-top-left z-10 pointer-events-none">
+        <div id="nodes-container" class="relative w-full h-full pointer-events-auto"></div>
+      </div>
+
+      <!-- SVG Canvas Overlay (Elevated Z-Index to Z-20 so lines stay clickable over cards) -->
+      <svg id="svg-canvas" class="absolute inset-0 w-full h-full pointer-events-none z-20">
+        <defs>
+          <!-- Inheritance / Implementation Arrow Head (Closed White Triangle) -->
+          <marker id="marker-inheritance" viewBox="0 0 16 16" refX="14" refY="8" markerWidth="12" markerHeight="12" orient="auto">
+            <polygon points="2 2, 14 8, 2 14" fill="#ffffff" stroke="#64748b" stroke-width="2"/>
+          </marker>
+          <!-- Association Arrow Head (Open Chevron) -->
+          <marker id="marker-association" viewBox="0 0 14 14" refX="12" refY="7" markerWidth="10" markerHeight="10" orient="auto">
+            <polyline points="2 2, 12 7, 2 12" fill="none" stroke="#64748b" stroke-width="2"/>
+          </marker>
+          <!-- Aggregation Diamond Head (Open Rhombus at Source Owner) -->
+          <marker id="marker-aggregation" viewBox="0 0 18 14" refX="1" refY="7" markerWidth="14" markerHeight="10" orient="auto">
+            <polygon points="2 7, 9 2, 16 7, 9 12" fill="#ffffff" stroke="#0284c7" stroke-width="2"/>
+          </marker>
+          <!-- Composition Diamond Head (Solid Rhombus at Source Owner) -->
+          <marker id="marker-composition" viewBox="0 0 18 14" refX="1" refY="7" markerWidth="14" markerHeight="10" orient="auto">
+            <polygon points="2 7, 9 2, 16 7, 9 12" fill="#0284c7" stroke="#0284c7" stroke-width="2"/>
+          </marker>
+        </defs>
+        <g id="svg-connections-group" class="pointer-events-none"></g>
+        <path id="svg-draft-line" class="hidden pointer-events-none" stroke="#0284c7" stroke-width="2.5" fill="none"/>
+      </svg>
+
+      <!-- Floating Connection Quick Action Tooltip -->
+      <div id="conn-action-bubble" class="hidden absolute z-30 transform -translate-x-1/2 -translate-y-full mb-2 bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900 px-3 py-1.5 rounded-lg shadow-xl text-xs flex items-center space-x-2">
+        <span class="font-semibold text-[11px]" id="conn-bubble-label">Selected Link</span>
+        <button id="btn-bubble-delete-conn" class="px-2 py-0.5 bg-rose-600 hover:bg-rose-700 text-white rounded text-[10px] font-medium flex items-center space-x-1">
+          <i class="fa-solid fa-trash-can"></i>
+          <span>Delete</span>
+        </button>
+      </div>
+
+      <!-- Diagnostic Diagnostics Panel -->
+      <div id="evaluation-panel" class="hidden absolute top-3 right-3 z-30 w-80 max-w-[calc(100vw-24px)] bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-2xl overflow-hidden flex flex-col max-h-[80vh]">
+        <div class="p-3 bg-rose-50 dark:bg-rose-950/40 border-b border-rose-200 dark:border-rose-900 flex items-center justify-between">
+          <div class="flex items-center space-x-2">
+            <i class="fa-solid fa-triangle-exclamation text-rose-600 dark:text-rose-400"></i>
+            <span class="font-bold text-xs text-rose-900 dark:text-rose-200">Diagram Evaluation Diagnostics</span>
+          </div>
+          <button id="btn-close-eval-panel" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+        </div>
+
+        <div class="p-3 text-xs border-b border-slate-100 dark:border-slate-700/60 bg-slate-50 dark:bg-slate-800/80 flex justify-between items-center text-slate-500">
+          <span>Flagged Classes:</span>
+          <span id="eval-flagged-count" class="font-bold text-rose-600 dark:text-rose-400">0</span>
+        </div>
+
+        <div id="eval-issues-list" class="p-3 overflow-y-auto space-y-2 flex-1">
+          <!-- Dynamically populated issues -->
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- EDIT CLASS MODAL -->
+  <div id="modal-edit-class" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-3 hidden">
+    <div class="bg-white dark:bg-slate-800 w-full max-w-lg rounded-xl shadow-2xl border border-slate-200 dark:border-slate-700 overflow-hidden flex flex-col max-h-[90vh]">
+      
+      <div class="p-4 border-b border-slate-200 dark:border-slate-700 flex justify-between items-center bg-slate-50 dark:bg-slate-800/60">
+        <h3 class="font-bold text-base text-slate-900 dark:text-white flex items-center space-x-2">
+          <i class="fa-solid fa-pen-to-square text-sky-600"></i>
+          <span id="modal-title">Edit Class Specification</span>
+        </h3>
+        <button id="btn-close-modal" class="text-slate-400 hover:text-slate-600 p-1">
+          <i class="fa-solid fa-xmark text-lg"></i>
+        </button>
+      </div>
+
+      <div class="p-4 overflow-y-auto space-y-4 flex-1 text-xs">
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div class="sm:col-span-2 space-y-1">
+            <label class="font-medium text-slate-700 dark:text-slate-300">Class Name</label>
+            <input type="text" id="input-node-name" class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-sky-500 outline-none text-xs font-semibold">
+          </div>
+          <div class="space-y-1">
+            <label class="font-medium text-slate-700 dark:text-slate-300">Stereotype</label>
+            <select id="select-node-type" class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-sky-500 outline-none text-xs">
+              <option value="class">Class</option>
+              <option value="interface">Interface</option>
+              <option value="abstract">Abstract Class</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Attributes Section -->
+        <div class="space-y-2">
+          <div class="flex justify-between items-center">
+            <label class="font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider text-[11px]">Attributes (Fields)</label>
+            <button id="btn-add-field-row" class="px-2 py-1 bg-sky-100 dark:bg-sky-900/40 text-sky-700 dark:text-sky-300 hover:bg-sky-200 rounded font-medium flex items-center space-x-1 text-[11px]">
+              <i class="fa-solid fa-plus"></i>
+              <span>Add Field</span>
+            </button>
+          </div>
+          <div id="fields-container" class="space-y-2 max-h-36 overflow-y-auto p-1 border border-slate-200 dark:border-slate-700 rounded-lg"></div>
+        </div>
+
+        <!-- Methods Section -->
+        <div class="space-y-2">
+          <div class="flex justify-between items-center">
+            <label class="font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider text-[11px]">Methods (Operations)</label>
+            <button id="btn-add-method-row" class="px-2 py-1 bg-sky-100 dark:bg-sky-900/40 text-sky-700 dark:text-sky-300 hover:bg-sky-200 rounded font-medium flex items-center space-x-1 text-[11px]">
+              <i class="fa-solid fa-plus"></i>
+              <span>Add Method</span>
+            </button>
+          </div>
+          <div id="methods-container" class="space-y-2 max-h-36 overflow-y-auto p-1 border border-slate-200 dark:border-slate-700 rounded-lg"></div>
+        </div>
+      </div>
+
+      <div class="p-3 border-t border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/60 flex justify-end space-x-2">
+        <button id="btn-cancel-modal" class="px-3 py-1.5 border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg font-medium text-xs">Cancel</button>
+        <button id="btn-save-modal" class="px-4 py-1.5 bg-sky-600 hover:bg-sky-700 text-white rounded-lg font-medium text-xs shadow">Save Changes</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- CODE PREVIEW MODAL -->
+  <div id="modal-code-preview" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-3 hidden">
+    <div class="bg-white dark:bg-slate-800 w-full max-w-3xl rounded-xl shadow-2xl border border-slate-200 dark:border-slate-700 overflow-hidden flex flex-col max-h-[90vh]">
+      
+      <div class="p-4 border-b border-slate-200 dark:border-slate-700 flex justify-between items-center bg-slate-50 dark:bg-slate-800/60">
+        <div class="flex items-center space-x-2">
+          <span id="code-lang-icon" class="text-xl text-sky-600"><i class="fa-brands fa-java"></i></span>
+          <h3 id="code-modal-title" class="font-bold text-base text-slate-900 dark:text-white">Generated Code</h3>
+        </div>
+        <button id="btn-close-code-modal" class="text-slate-400 hover:text-slate-600 p-1">
+          <i class="fa-solid fa-xmark text-lg"></i>
+        </button>
+      </div>
+
+      <div class="p-4 overflow-y-auto flex-1 bg-slate-900 text-slate-100">
+        <pre><code id="code-output" class="code-font text-xs leading-relaxed"></code></pre>
+      </div>
+
+      <div class="p-3 border-t border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/60 flex justify-between items-center">
+        <span class="text-[11px] text-slate-500">Syntactically generated from diagram model</span>
+        <div class="flex space-x-2">
+          <button id="btn-copy-code" class="px-3 py-1.5 bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 text-slate-800 dark:text-slate-200 rounded-lg text-xs font-medium flex items-center space-x-1">
+            <i class="fa-regular fa-copy"></i>
+            <span>Copy Code</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CONTEXT MENUS -->
+  <div id="context-menu-node" class="fixed z-50 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg shadow-xl p-1 text-xs hidden min-w-[170px]">
+    <button id="ctx-node-gen-java" class="w-full text-left px-3 py-1.5 hover:bg-sky-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded flex items-center space-x-2">
+      <i class="fa-brands fa-java text-sky-600"></i>
+      <span>Generate Java</span>
+    </button>
+    <button id="ctx-node-gen-cpp" class="w-full text-left px-3 py-1.5 hover:bg-indigo-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded flex items-center space-x-2">
+      <i class="fa-solid fa-code text-indigo-600"></i>
+      <span>Generate C++</span>
+    </button>
+    <div class="h-px bg-slate-200 dark:bg-slate-700 my-1"></div>
+    <button id="ctx-node-edit" class="w-full text-left px-3 py-1.5 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded flex items-center space-x-2">
+      <i class="fa-solid fa-pen text-slate-400"></i>
+      <span>Edit Class</span>
+    </button>
+    <button id="ctx-node-delete" class="w-full text-left px-3 py-1.5 hover:bg-rose-50 dark:hover:bg-rose-950 text-rose-600 dark:text-rose-400 rounded flex items-center space-x-2">
+      <i class="fa-solid fa-trash-can"></i>
+      <span>Delete Class</span>
+    </button>
+  </div>
+
+  <div id="context-menu-conn" class="fixed z-50 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg shadow-xl p-1 text-xs hidden min-w-[180px]">
+    <div class="px-2 py-1 text-[10px] font-bold uppercase text-slate-400">Multiplicity</div>
+    <button id="ctx-conn-multi-11" class="w-full text-left px-3 py-1 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded">1 to 1</button>
+    <button id="ctx-conn-multi-1n-array" class="w-full text-left px-3 py-1 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded">1 to Many (Array)</button>
+    <button id="ctx-conn-multi-1n-list" class="w-full text-left px-3 py-1 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded">1 to Many (List/Vector)</button>
+    <div class="h-px bg-slate-200 dark:bg-slate-700 my-1"></div>
+    <button id="ctx-conn-delete" class="w-full text-left px-3 py-1.5 hover:bg-rose-50 dark:hover:bg-rose-950 text-rose-600 dark:text-rose-400 rounded flex items-center space-x-2">
+      <i class="fa-solid fa-trash-can"></i>
+      <span>Delete Connection</span>
+    </button>
+  </div>
+
+  <!-- TOAST CONTAINER -->
+  <div id="toast-container" class="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 flex flex-col space-y-2 pointer-events-none"></div>
+
+  <!-- DIAGRAM RULES DOCUMENTATION MODAL -->
+  <div id="modal-diagram-rules" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-3 hidden">
+    <div class="bg-white dark:bg-slate-800 w-full max-w-2xl rounded-xl shadow-2xl border border-slate-200 dark:border-slate-700 overflow-hidden flex flex-col max-h-[85vh]">
+      <div class="p-4 border-b border-slate-200 dark:border-slate-700 flex justify-between items-center bg-slate-50 dark:bg-slate-800/60">
+        <h3 class="font-bold text-base text-slate-900 dark:text-white flex items-center space-x-2">
+          <i class="fa-solid fa-book-open-reader text-sky-600"></i>
+          <span>UML Class Architecture Diagnostic Rules</span>
+        </h3>
+        <button id="btn-close-rules-modal" class="text-slate-400 hover:text-slate-600 p-1">
+          <i class="fa-solid fa-xmark text-lg"></i>
+        </button>
+      </div>
+      <div class="p-4 overflow-y-auto space-y-3 text-xs text-slate-600 dark:text-slate-300">
+        <div class="p-3 bg-slate-50 dark:bg-slate-700/40 rounded-lg border border-slate-200 dark:border-slate-700 space-y-1">
+          <div class="font-bold text-sky-600 dark:text-sky-400">Rule 1: Abstract Subclass Requirement</div>
+          <p>Every abstract class must be extended by at least one concrete child class.</p>
+        </div>
+        <div class="p-3 bg-slate-50 dark:bg-slate-700/40 rounded-lg border border-slate-200 dark:border-slate-700 space-y-1">
+          <div class="font-bold text-emerald-600 dark:text-emerald-400">Rule 2: Interface Realization</div>
+          <p>Interfaces must be implemented by at least one class in the diagram model.</p>
+        </div>
+        <div class="p-3 bg-slate-50 dark:bg-slate-700/40 rounded-lg border border-slate-200 dark:border-slate-700 space-y-1">
+          <div class="font-bold text-purple-600 dark:text-purple-400">Rule 3: Interface Operation Completion</div>
+          <p>Any class implementing an interface must declare all signatures specified by that interface.</p>
+        </div>
+        <div class="p-3 bg-slate-50 dark:bg-slate-700/40 rounded-lg border border-slate-200 dark:border-slate-700 space-y-1">
+          <div class="font-bold text-amber-600 dark:text-amber-400">Rule 4 & 5: Inheritance Cycle & Single Parent Rule</div>
+          <p>Circular inheritance is forbidden, and classes should not inherit from multiple parent classes.</p>
+        </div>
+        <div class="p-3 bg-sky-50 dark:bg-sky-950/40 rounded-lg border border-sky-200 dark:border-sky-900 space-y-1">
+          <div class="font-bold text-sky-700 dark:text-sky-300">Rule 6: Aggregation / Composition Object Reference & Methods</div>
+          <p>When Class A aggregates Class B (e.g. <code>Student</code> aggregates <code>Department</code>):</p>
+          <ul class="list-disc list-inside space-y-0.5 mt-1 text-[11px]">
+            <li>The aggregate class (<code>Student</code>) must contain an attribute referencing <code>Department</code>.</li>
+            <li>The aggregate class must contain <strong>at least 5 operations</strong> interacting with <code>Department</code> (e.g., <code>registerDepartment()</code>, <code>showDepartmentDetails()</code>, <code>changeDepartment()</code>, <code>removeDepartment()</code>, <code>updateDepartment()</code>).</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- JAVASCRIPT LOGIC -->
+  <script>
+    // GLOBAL STATE
+    const state = {
+      nodes: [],
+      connections: [],
+      selectedRelType: null, // null means Move / Select Mode
+      activeNodeId: null,
+      activeConnId: null,
+      editingNodeId: null,
+      isConnecting: false,
+      connectingFromId: null,
+      zoom: 1.0,
+      pan: { x: 0, y: 0 },
+      isPanning: false,
+      panStart: { x: 0, y: 0 },
+      nodeViolations: {}
+    };
+
+    // DOM ELEMENTS
+    const canvasContainer = document.getElementById('canvas-container');
+    const canvasTransformLayer = document.getElementById('canvas-transform-layer');
+    const nodesContainer = document.getElementById('nodes-container');
+    const svgCanvas = document.getElementById('svg-canvas');
+    const svgConnectionsGroup = document.getElementById('svg-connections-group');
+    const svgDraftLine = document.getElementById('svg-draft-line');
+    const connActionBubble = document.getElementById('conn-action-bubble');
+    const connBubbleLabel = document.getElementById('conn-bubble-label');
+
+    function initDemoData() {
+      state.nodes = [
+        {
+          id: 'node-1',
+          name: 'Person',
+          type: 'class',
+          x: 100,
+          y: 80,
+          width: 190,
+          fields: [
+            { id: 'f1', name: 'id', type: 'int', access: '-' },
+            { id: 'f2', name: 'name', type: 'String', access: '#' }
+          ],
+          methods: [
+            { id: 'm1', name: 'getName', returnType: 'String', access: '+' },
+            { id: 'm2', name: 'setName', returnType: 'void', access: '+' }
+          ]
+        },
+        {
+          id: 'node-2',
+          name: 'Student',
+          type: 'class',
+          x: 100,
+          y: 300,
+          width: 210,
+          fields: [
+            { id: 'f3', name: 'studentId', type: 'String', access: '-' },
+            { id: 'f4', name: 'gpa', type: 'double', access: '-' },
+            { id: 'f-dept', name: 'department', type: 'Department', access: '-' }
+          ],
+          methods: [
+            { id: 'm-dep1', name: 'registerDepartment', returnType: 'void', access: '+' },
+            { id: 'm-dep2', name: 'showDepartmentDetails', returnType: 'String', access: '+' },
+            { id: 'm-dep3', name: 'changeDepartment', returnType: 'boolean', access: '+' },
+            { id: 'm-dep4', name: 'removeDepartment', returnType: 'void', access: '+' },
+            { id: 'm-dep5', name: 'updateDepartment', returnType: 'boolean', access: '+' }
+          ]
+        },
+        {
+          id: 'node-3',
+          name: 'Authenticatable',
+          type: 'interface',
+          x: 380,
+          y: 80,
+          width: 200,
+          fields: [],
+          methods: [
+            { id: 'm4', name: 'login', returnType: 'boolean', access: '+' },
+            { id: 'm5', name: 'logout', returnType: 'void', access: '+' }
+          ]
+        },
+        {
+          id: 'node-4',
+          name: 'Department',
+          type: 'class',
+          x: 380,
+          y: 300,
+          width: 210,
+          fields: [
+            { id: 'f5', name: 'deptName', type: 'String', access: '-' }
+          ],
+          methods: [
+            { id: 'm6', name: 'getDetails', returnType: 'String', access: '+' }
+          ]
+        }
+      ];
+
+      state.connections = [
+        { id: 'conn-1', fromId: 'node-2', toId: 'node-1', type: 'inheritance', multiplicity: '1-1' },
+        { id: 'conn-2', fromId: 'node-2', toId: 'node-3', type: 'implementation', multiplicity: '1-1' },
+        { id: 'conn-3', fromId: 'node-2', toId: 'node-4', type: 'aggregation', multiplicity: '1-1' }
+      ];
+    }
+
+    // UTILITIES
+    function generateId(prefix = 'id') {
+      return `${prefix}-${Math.random().toString(36).substring(2, 9)}`;
+    }
+
+    function escapeHtml(str) {
+      if (!str) return '';
+      return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+
+    function showToast(message, type = 'info') {
+      const container = document.getElementById('toast-container');
+      const toast = document.createElement('div');
+      
+      let bg = 'bg-slate-800 text-white';
+      if (type === 'success') bg = 'bg-emerald-600 text-white';
+      if (type === 'error') bg = 'bg-rose-600 text-white';
+
+      toast.className = `px-4 py-2 rounded-lg text-xs font-medium shadow-lg transition-all transform translate-y-2 opacity-0 pointer-events-auto flex items-center space-x-2 ${bg}`;
+      toast.innerHTML = `<span>${escapeHtml(message)}</span>`;
+
+      container.appendChild(toast);
+      
+      setTimeout(() => {
+        toast.classList.remove('translate-y-2', 'opacity-0');
+      }, 10);
+
+      setTimeout(() => {
+        toast.classList.add('opacity-0', 'translate-y-2');
+        setTimeout(() => toast.remove(), 300);
+      }, 3000);
+    }
+
+    function updateTransform() {
+      canvasTransformLayer.style.transform = `translate(${state.pan.x}px, ${state.pan.y}px) scale(${state.zoom})`;
+      document.getElementById('zoom-indicator').textContent = `${Math.round(state.zoom * 100)}%`;
+      renderConnections();
+    }
+
+    function setZoom(newZoom, centerX = canvasContainer.clientWidth / 2, centerY = canvasContainer.clientHeight / 2) {
+      const clampedZoom = Math.min(Math.max(0.3, newZoom), 2.5);
+      const zoomFactor = clampedZoom / state.zoom;
+      
+      state.pan.x = centerX - (centerX - state.pan.x) * zoomFactor;
+      state.pan.y = centerY - (centerY - state.pan.y) * zoomFactor;
+      state.zoom = clampedZoom;
+      
+      updateTransform();
+    }
+
+    // RENDER NODES
+    function renderNodes() {
+      nodesContainer.innerHTML = '';
+
+      state.nodes.forEach(node => {
+        const card = document.createElement('div');
+        const isViolated = state.nodeViolations[node.id] && state.nodeViolations[node.id].length > 0;
+
+        card.id = node.id;
+        card.style.left = `${node.x}px`;
+        card.style.top = `${node.y}px`;
+        card.style.width = `${node.width || 190}px`;
+
+        let borderStyle = "border-slate-300 dark:border-slate-600";
+        let headerBg = "bg-slate-100 dark:bg-slate-700/80 text-slate-800 dark:text-slate-100";
+        
+        if (node.type === 'interface') {
+          borderStyle = "border-emerald-400 dark:border-emerald-600";
+          headerBg = "bg-emerald-50 dark:bg-emerald-950/60 text-emerald-900 dark:text-emerald-200";
+        } else if (node.type === 'abstract') {
+          borderStyle = "border-amber-400 dark:border-amber-600";
+          headerBg = "bg-amber-50 dark:bg-amber-950/60 text-amber-900 dark:text-amber-200";
+        }
+
+        if (isViolated) {
+          borderStyle = "border-rose-600 ring-4 ring-rose-500/30";
+        }
+
+        card.className = `absolute bg-white dark:bg-slate-800 border-2 rounded-xl shadow-md overflow-hidden cursor-move select-none transition-shadow hover:shadow-lg ${borderStyle}`;
+
+        let stereotypeText = '';
+        if (node.type === 'interface') stereotypeText = '&lt;&lt;interface&gt;&gt;';
+        if (node.type === 'abstract') stereotypeText = '&lt;&lt;abstract&gt;&gt;';
+
+        card.innerHTML = `
+          <div class="p-2 border-b border-slate-200 dark:border-slate-700 text-center ${headerBg} relative">
+            ${stereotypeText ? `<div class="text-[9px] font-mono tracking-tighter opacity-70 leading-none mb-0.5">${stereotypeText}</div>` : ''}
+            <div class="font-bold text-xs truncate ${node.type === 'abstract' ? 'italic' : ''}">${escapeHtml(node.name)}</div>
+            ${isViolated ? `<i class="fa-solid fa-circle-exclamation text-rose-600 absolute top-2 right-2 text-xs"></i>` : ''}
+          </div>
+
+          <div class="p-2 border-b border-slate-100 dark:border-slate-700/60 font-mono text-[11px] space-y-0.5 min-h-[28px]">
+            ${node.fields.length === 0 ? '<div class="text-[10px] text-slate-400 italic">no attributes</div>' : ''}
+            ${node.fields.map(f => `
+              <div class="truncate text-slate-600 dark:text-slate-300">
+                <span class="font-bold text-sky-600 dark:text-sky-400 w-3 inline-block">${escapeHtml(f.access)}</span>
+                <span>${escapeHtml(f.name)}:</span>
+                <span class="text-slate-400 dark:text-slate-500">${escapeHtml(f.type)}</span>
+              </div>
+            `).join('')}
+          </div>
+
+          <div class="p-2 font-mono text-[11px] space-y-0.5 min-h-[28px]">
+            ${node.methods.length === 0 ? '<div class="text-[10px] text-slate-400 italic">no methods</div>' : ''}
+            ${node.methods.map(m => `
+              <div class="truncate text-slate-600 dark:text-slate-300">
+                <span class="font-bold text-sky-600 dark:text-sky-400 w-3 inline-block">${escapeHtml(m.access)}</span>
+                <span>${escapeHtml(m.name)}():</span>
+                <span class="text-slate-400 dark:text-slate-500">${escapeHtml(m.returnType)}</span>
+              </div>
+            `).join('')}
+          </div>
+
+          <div class="conn-handle absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 w-4 h-4 bg-sky-500 border-2 border-white rounded-full opacity-0 hover:opacity-100 transition-opacity cursor-pointer z-20" data-handle="top"></div>
+          <div class="conn-handle absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-1/2 w-4 h-4 bg-sky-500 border-2 border-white rounded-full opacity-0 hover:opacity-100 transition-opacity cursor-pointer z-20" data-handle="bottom"></div>
+          <div class="conn-handle absolute top-1/2 left-0 -translate-x-1/2 -translate-y-1/2 w-4 h-4 bg-sky-500 border-2 border-white rounded-full opacity-0 hover:opacity-100 transition-opacity cursor-pointer z-20" data-handle="left"></div>
+          <div class="conn-handle absolute top-1/2 right-0 translate-x-1/2 -translate-y-1/2 w-4 h-4 bg-sky-500 border-2 border-white rounded-full opacity-0 hover:opacity-100 transition-opacity cursor-pointer z-20" data-handle="right"></div>
+        `;
+
+        setupNodeEvents(card, node);
+        nodesContainer.appendChild(card);
+      });
+
+      document.getElementById('stat-class-count').textContent = state.nodes.length;
+      document.getElementById('stat-conn-count').textContent = state.connections.length;
+
+      renderConnections();
+    }
+
+    function setupNodeEvents(card, node) {
+      let isDragging = false;
+      let startX, startY, initialX, initialY;
+
+      const onMouseDown = (e) => {
+        if (e.target.classList.contains('conn-handle')) return;
+        if (e.button !== 0) return;
+
+        // If in connecting mode, clicking any class completes the connection
+        if (state.isConnecting && state.connectingFromId && state.connectingFromId !== node.id) {
+          e.stopPropagation();
+          const newConn = {
+            id: generateId('conn'),
+            fromId: state.connectingFromId,
+            toId: node.id,
+            type: state.selectedRelType,
+            multiplicity: '1-1'
+          };
+
+          // Auto-inject object field into owner class if Aggregation or Composition
+          if (newConn.type === 'aggregation' || newConn.type === 'composition') {
+            const ownerNode = state.nodes.find(n => n.id === newConn.fromId);
+            const targetNode = state.nodes.find(n => n.id === newConn.toId);
+            if (ownerNode && targetNode) {
+              const fieldName = targetNode.name.toLowerCase();
+              const exists = ownerNode.fields.some(f => f.name.toLowerCase() === fieldName);
+              if (!exists) {
+                ownerNode.fields.push({
+                  id: generateId('f'),
+                  name: fieldName,
+                  type: targetNode.name,
+                  access: '-'
+                });
+                renderNodes();
+              }
+            }
+          }
+
+          state.connections.push(newConn);
+          state.isConnecting = false;
+          svgDraftLine.classList.add('hidden');
+          renderConnections();
+          showToast(`Connected ${state.nodes.find(n => n.id === newConn.fromId)?.name} to ${node.name}`, 'success');
+          return;
+        }
+
+        isDragging = true;
+        startX = e.clientX;
+        startY = e.clientY;
+        initialX = node.x;
+        initialY = node.y;
+
+        document.addEventListener('mousemove', onMouseMove);
+        document.addEventListener('mouseup', onMouseUp);
+        e.stopPropagation();
+      };
+
+      const onMouseMove = (e) => {
+        if (!isDragging) return;
+        const dx = (e.clientX - startX) / state.zoom;
+        const dy = (e.clientY - startY) / state.zoom;
+
+        node.x = Math.max(0, initialX + dx);
+        node.y = Math.max(0, initialY + dy);
+
+        card.style.left = `${node.x}px`;
+        card.style.top = `${node.y}px`;
+
+        renderConnections();
+      };
+
+      const onMouseUp = () => {
+        isDragging = false;
+        document.removeEventListener('mousemove', onMouseMove);
+        document.removeEventListener('mouseup', onMouseUp);
+      };
+
+      card.addEventListener('mousedown', onMouseDown);
+
+      card.addEventListener('contextmenu', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        openContextMenu('node', e.clientX, e.clientY, node.id);
+      });
+
+      card.addEventListener('dblclick', (e) => {
+        e.stopPropagation();
+        openEditModal(node.id);
+      });
+
+      // Handle Connector Handles (Click or Drag to start line)
+      const handles = card.querySelectorAll('.conn-handle');
+      handles.forEach(h => {
+        const startConnection = (e) => {
+          e.stopPropagation();
+
+          // Require relationship type selection first
+          if (!state.selectedRelType) {
+            showToast('Please select a connector type from the sidebar (Association, Inheritance, etc.) first.', 'error');
+            return;
+          }
+
+          state.isConnecting = true;
+          state.connectingFromId = node.id;
+          
+          applyDraftLineStyle(state.selectedRelType);
+          svgDraftLine.classList.remove('hidden');
+          showToast(`Drawing ${state.selectedRelType.toUpperCase()} from "${node.name}". Click target class to complete link.`, 'info');
+        };
+
+        h.addEventListener('mousedown', startConnection);
+        h.addEventListener('click', startConnection);
+      });
+
+      // General Card Click Listener to Start/End Connection Anywhere on Class
+      card.addEventListener('click', (e) => {
+        if (state.isConnecting && state.connectingFromId && state.connectingFromId !== node.id) {
+          e.stopPropagation();
+          const newConn = {
+            id: generateId('conn'),
+            fromId: state.connectingFromId,
+            toId: node.id,
+            type: state.selectedRelType,
+            multiplicity: '1-1'
+          };
+          state.connections.push(newConn);
+          state.isConnecting = false;
+          svgDraftLine.classList.add('hidden');
+          renderConnections();
+          showToast(`Connected ${state.nodes.find(n => n.id === newConn.fromId)?.name} to ${node.name}`, 'success');
+        } else if (!state.isConnecting) {
+          // If a relationship tool is active, start a connection on click
+          if (state.selectedRelType) {
+            state.isConnecting = true;
+            state.connectingFromId = node.id;
+            applyDraftLineStyle(state.selectedRelType);
+            svgDraftLine.classList.remove('hidden');
+            showToast(`Started ${state.selectedRelType.toUpperCase()} connector from "${node.name}". Click destination class to complete link.`, 'info');
+          }
+        }
+      });
+    }
+
+    function applyDraftLineStyle(type) {
+      svgDraftLine.removeAttribute('stroke-dasharray');
+      svgDraftLine.removeAttribute('marker-end');
+
+      if (type === 'implementation') {
+        svgDraftLine.setAttribute('stroke-dasharray', '6 6');
+        svgDraftLine.setAttribute('marker-end', 'url(#marker-inheritance)');
+      } else if (type === 'inheritance') {
+        svgDraftLine.setAttribute('marker-end', 'url(#marker-inheritance)');
+      } else if (type === 'association') {
+        svgDraftLine.setAttribute('marker-end', 'url(#marker-association)');
+      } else if (type === 'aggregation') {
+        svgDraftLine.setAttribute('marker-end', 'url(#marker-aggregation)');
+      } else if (type === 'composition') {
+        svgDraftLine.setAttribute('marker-end', 'url(#marker-composition)');
+      }
+    }
+
+    // RENDER CONNECTIONS & SVG LINES
+    function getCenterCoordinates(nodeId) {
+      const node = state.nodes.find(n => n.id === nodeId);
+      if (!node) return { x: 0, y: 0, width: 0, height: 0 };
+      const el = document.getElementById(nodeId);
+      const width = el ? el.offsetWidth : node.width || 190;
+      const height = el ? el.offsetHeight : 120;
+      return {
+        x: node.x + width / 2,
+        y: node.y + height / 2,
+        left: node.x,
+        top: node.y,
+        width,
+        height
+      };
+    }
+
+    function getEdgeIntersection(from, to) {
+      const dx = to.x - from.x;
+      const dy = to.y - from.y;
+      if (dx === 0 && dy === 0) return { x: to.x, y: to.y };
+
+      const halfW = (to.width || 190) / 2;
+      const halfH = (to.height || 120) / 2;
+
+      let scale = 1;
+      if (Math.abs(dx) * halfH > Math.abs(dy) * halfW) {
+        scale = halfW / Math.abs(dx);
+      } else {
+        scale = halfH / Math.abs(dy);
+      }
+
+      return {
+        x: to.x - dx * scale,
+        y: to.y - dy * scale
+      };
+    }
+
+    // CONTEXT MENUS UTILITIES (Scoped globally for SVG & DOM handlers)
+    function openContextMenu(type, x, y, targetId) {
+      closeContextMenus();
+      if (type === 'node') {
+        state.activeNodeId = targetId;
+        const menu = document.getElementById('context-menu-node');
+        menu.style.left = `${Math.min(x, window.innerWidth - 180)}px`;
+        menu.style.top = `${Math.min(y, window.innerHeight - 180)}px`;
+        menu.classList.remove('hidden');
+      } else if (type === 'conn') {
+        state.activeConnId = targetId;
+        const menu = document.getElementById('context-menu-conn');
+        menu.style.left = `${Math.min(x, window.innerWidth - 190)}px`;
+        menu.style.top = `${Math.min(y, window.innerHeight - 200)}px`;
+        menu.classList.remove('hidden');
+      }
+    }
+
+    function closeContextMenus() {
+      const nodeMenu = document.getElementById('context-menu-node');
+      const connMenu = document.getElementById('context-menu-conn');
+      if (nodeMenu) nodeMenu.classList.add('hidden');
+      if (connMenu) connMenu.classList.add('hidden');
+    }
+
+    function renderConnections() {
+      svgConnectionsGroup.innerHTML = '';
+      let activeConnObj = null;
+      let activeMidPoint = null;
+
+      state.connections.forEach(conn => {
+        const from = getCenterCoordinates(conn.fromId);
+        const to = getCenterCoordinates(conn.toId);
+
+        if (!from || !to || from.x === 0 || to.x === 0) return;
+
+        const targetEdge = getEdgeIntersection(from, to);
+        const sourceEdge = getEdgeIntersection(to, from);
+
+        const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+        g.setAttribute('data-conn-id', conn.id);
+        g.style.pointerEvents = 'auto';
+
+        const d = `M ${sourceEdge.x} ${sourceEdge.y} L ${targetEdge.x} ${targetEdge.y}`;
+        const isSelected = conn.id === state.activeConnId;
+
+        if (isSelected) {
+          activeConnObj = conn;
+          activeMidPoint = {
+            x: ((sourceEdge.x + targetEdge.x) / 2) * state.zoom + state.pan.x,
+            y: ((sourceEdge.y + targetEdge.y) / 2) * state.zoom + state.pan.y
+          };
+        }
+
+        // Selection Cyan Glow Effect
+        if (isSelected) {
+          const selectGlow = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+          selectGlow.setAttribute('d', d);
+          selectGlow.setAttribute('stroke', '#06b6d4');
+          selectGlow.setAttribute('stroke-width', '12');
+          selectGlow.setAttribute('stroke-opacity', '0.7');
+          selectGlow.setAttribute('fill', 'none');
+          selectGlow.style.pointerEvents = 'none';
+          g.appendChild(selectGlow);
+        }
+
+        // Visible Connection Path
+        const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        path.setAttribute('d', d);
+        path.setAttribute('stroke', isSelected ? '#0284c7' : '#64748b');
+        path.setAttribute('stroke-width', isSelected ? '3.5' : '2');
+        path.setAttribute('fill', 'none');
+        path.style.pointerEvents = 'none';
+
+        if (conn.type === 'implementation') {
+          path.setAttribute('stroke-dasharray', '6 6');
+          path.setAttribute('marker-end', 'url(#marker-inheritance)');
+        } else if (conn.type === 'inheritance') {
+          path.setAttribute('marker-end', 'url(#marker-inheritance)');
+        } else if (conn.type === 'association') {
+          path.setAttribute('marker-end', 'url(#marker-association)');
+        } else if (conn.type === 'aggregation') {
+          path.setAttribute('marker-start', 'url(#marker-aggregation)');
+        } else if (conn.type === 'composition') {
+          path.setAttribute('marker-start', 'url(#marker-composition)');
+        }
+
+        // Extra Wide Hit Area Overlay
+        const hitArea = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        hitArea.setAttribute('d', d);
+        hitArea.setAttribute('stroke', 'transparent');
+        hitArea.setAttribute('stroke-width', '36');
+        hitArea.setAttribute('fill', 'none');
+        hitArea.style.pointerEvents = 'stroke';
+        hitArea.style.cursor = 'pointer';
+
+        const selectConnection = (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          if (e.stopImmediatePropagation) e.stopImmediatePropagation();
+          state.activeConnId = conn.id;
+          renderConnections();
+        };
+
+        hitArea.addEventListener('click', selectConnection);
+        hitArea.addEventListener('mousedown', selectConnection);
+        hitArea.addEventListener('contextmenu', (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          if (e.stopImmediatePropagation) e.stopImmediatePropagation();
+          state.activeConnId = conn.id;
+          renderConnections();
+          openContextMenu('conn', e.clientX, e.clientY, conn.id);
+        });
+
+        g.appendChild(path);
+        g.appendChild(hitArea);
+
+        if (conn.multiplicity && conn.multiplicity !== '1-1') {
+          const midX = (sourceEdge.x + targetEdge.x) / 2;
+          const midY = (sourceEdge.y + targetEdge.y) / 2;
+          
+          const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+          text.setAttribute('x', midX);
+          text.setAttribute('y', midY - 8);
+          text.setAttribute('fill', '#0284c7');
+          text.setAttribute('font-size', '11');
+          text.setAttribute('font-weight', 'bold');
+          text.setAttribute('text-anchor', 'middle');
+          text.style.pointerEvents = 'none';
+          text.textContent = conn.multiplicity === '1-n-array' ? '1..*' : '0..*';
+          
+          g.appendChild(text);
+        }
+
+        svgConnectionsGroup.appendChild(g);
+      });
+
+      // Floating Tooltip Positioning
+      if (activeConnObj && activeMidPoint) {
+        connBubbleLabel.textContent = `${activeConnObj.type.toUpperCase()} link`;
+        connActionBubble.style.left = `${activeMidPoint.x}px`;
+        connActionBubble.style.top = `${activeMidPoint.y - 12}px`;
+        connActionBubble.classList.remove('hidden');
+      } else {
+        connActionBubble.classList.add('hidden');
+      }
+    }
+
+    // INITIALIZATION & EVENT LISTENERS
+    document.addEventListener('DOMContentLoaded', () => {
+      initDemoData();
+      renderNodes();
+      updateTransform();
+
+      // Mode & Relationship Selectors
+      const relBtns = document.querySelectorAll('.rel-btn');
+      const toolSelectBtn = document.getElementById('btn-tool-select');
+
+      function selectRelType(type) {
+        state.selectedRelType = type;
+        if (state.isConnecting) {
+          state.isConnecting = false;
+          state.connectingFromId = null;
+          svgDraftLine.classList.add('hidden');
+        }
+
+        relBtns.forEach(btn => {
+          const isMatch = btn.getAttribute('data-rel') === type;
+          const checkIcon = btn.querySelector('.check-icon');
+          if (isMatch) {
+            btn.className = "w-full p-2 bg-sky-50 dark:bg-sky-900/30 border border-sky-300 dark:border-sky-700 text-sky-700 dark:text-sky-200 rounded-lg text-left flex items-center justify-between text-xs font-medium rel-btn";
+            if (checkIcon) checkIcon.classList.remove('hidden');
+          } else {
+            btn.className = "w-full p-2 bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 text-slate-700 dark:text-slate-300 rounded-lg text-left flex items-center justify-between text-xs font-medium rel-btn hover:bg-slate-100";
+            if (checkIcon) checkIcon.classList.add('hidden');
+          }
+        });
+
+        if (toolSelectBtn) {
+          const check = toolSelectBtn.querySelector('.check-icon');
+          if (type === null) {
+            toolSelectBtn.className = "w-full p-2.5 bg-sky-50 dark:bg-sky-900/30 border border-sky-300 dark:border-sky-700 text-sky-700 dark:text-sky-200 rounded-lg text-left flex items-center justify-between text-xs font-medium transition tool-btn";
+            if (check) check.classList.remove('hidden');
+          } else {
+            toolSelectBtn.className = "w-full p-2.5 bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 text-slate-700 dark:text-slate-300 rounded-lg text-left flex items-center justify-between text-xs font-medium transition tool-btn hover:bg-slate-100";
+            if (check) check.classList.add('hidden');
+          }
+        }
+      }
+
+      if (toolSelectBtn) {
+        toolSelectBtn.addEventListener('click', () => {
+          selectRelType(null);
+          showToast('Move / Select mode active. Drag classes or select links.', 'info');
+        });
+      }
+
+      relBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+          const relType = btn.getAttribute('data-rel');
+          selectRelType(relType);
+          showToast(`Selected ${relType.toUpperCase()} connector. Click source class then target class.`, 'info');
+        });
+      });
+
+      // Default to Association tool
+      selectRelType('association');
+
+      // Add Class / Interface / Abstract Buttons
+      document.getElementById('btn-add-class').addEventListener('click', () => {
+        const id = generateId('node');
+        state.nodes.push({
+          id,
+          name: `NewClass${state.nodes.length + 1}`,
+          type: 'class',
+          x: 140 + (state.nodes.length * 20),
+          y: 140 + (state.nodes.length * 20),
+          width: 190,
+          fields: [{ id: generateId('f'), name: 'id', type: 'int', access: '-' }],
+          methods: [{ id: generateId('m'), name: 'getId', returnType: 'int', access: '+' }]
+        });
+        renderNodes();
+        showToast('Added new Class', 'success');
+      });
+
+      document.getElementById('btn-add-interface').addEventListener('click', () => {
+        const id = generateId('node');
+        state.nodes.push({
+          id,
+          name: `IComponent${state.nodes.length + 1}`,
+          type: 'interface',
+          x: 160 + (state.nodes.length * 20),
+          y: 160 + (state.nodes.length * 20),
+          width: 190,
+          fields: [],
+          methods: [{ id: generateId('m'), name: 'execute', returnType: 'void', access: '+' }]
+        });
+        renderNodes();
+        showToast('Added new Interface', 'success');
+      });
+
+      document.getElementById('btn-add-abstract').addEventListener('click', () => {
+        const id = generateId('node');
+        state.nodes.push({
+          id,
+          name: `BaseEntity${state.nodes.length + 1}`,
+          type: 'abstract',
+          x: 180 + (state.nodes.length * 20),
+          y: 180 + (state.nodes.length * 20),
+          width: 190,
+          fields: [{ id: generateId('f'), name: 'createdDate', type: 'Date', access: '#' }],
+          methods: [{ id: generateId('m'), name: 'process', returnType: 'boolean', access: '+' }]
+        });
+        renderNodes();
+        showToast('Added new Abstract Class', 'success');
+      });
+
+      // Delete Selected Connection Handler
+      function deleteSelectedConnection() {
+        if (!state.activeConnId) {
+          showToast('No connection link selected to delete.', 'error');
+          return;
+        }
+        const connIndex = state.connections.findIndex(c => c.id === state.activeConnId);
+        if (connIndex !== -1) {
+          const removed = state.connections.splice(connIndex, 1)[0];
+          state.activeConnId = null;
+          renderConnections();
+          document.getElementById('stat-conn-count').textContent = state.connections.length;
+          showToast(`Deleted ${removed.type} connection`, 'success');
+        }
+      }
+
+      document.getElementById('btn-delete-selected-conn').addEventListener('click', deleteSelectedConnection);
+      document.getElementById('btn-bubble-delete-conn').addEventListener('click', deleteSelectedConnection);
+
+      // Keyboard Delete & Escape Handlers
+      window.addEventListener('keydown', (e) => {
+        if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'SELECT') return;
+
+        if (e.key === 'Delete' || e.key === 'Backspace') {
+          if (state.activeConnId) {
+            e.preventDefault();
+            deleteSelectedConnection();
+          }
+        } else if (e.key === 'Escape') {
+          // Cancel active line drawing or deselect active items
+          if (state.isConnecting) {
+            state.isConnecting = false;
+            state.connectingFromId = null;
+            svgDraftLine.classList.add('hidden');
+            showToast('Cancelled line drawing', 'info');
+          }
+          if (state.activeConnId) {
+            state.activeConnId = null;
+            renderConnections();
+          }
+          closeContextMenus();
+          closeEditModal();
+          document.getElementById('modal-code-preview').classList.add('hidden');
+          document.getElementById('evaluation-panel').classList.add('hidden');
+        }
+      });
+
+      // Canvas Zoom & Pan Event Listeners
+      document.getElementById('btn-zoom-in').addEventListener('click', () => setZoom(state.zoom + 0.15));
+      document.getElementById('btn-zoom-out').addEventListener('click', () => setZoom(state.zoom - 0.15));
+      document.getElementById('btn-zoom-reset').addEventListener('click', () => {
+        state.zoom = 1.0;
+        state.pan = { x: 0, y: 0 };
+        updateTransform();
+      });
+
+      canvasContainer.addEventListener('wheel', (e) => {
+        e.preventDefault();
+        const delta = e.deltaY > 0 ? -0.1 : 0.1;
+        setZoom(state.zoom + delta, e.clientX, e.clientY);
+      }, { passive: false });
+
+      canvasContainer.addEventListener('mousedown', (e) => {
+        if (e.target === canvasContainer || e.target === svgCanvas || e.target.id === 'nodes-container') {
+          state.activeConnId = null;
+          renderConnections();
+          closeContextMenus();
+
+          if (state.isConnecting) {
+            state.isConnecting = false;
+            state.connectingFromId = null;
+            svgDraftLine.classList.add('hidden');
+          }
+
+          state.isPanning = true;
+          state.panStart = { x: e.clientX - state.pan.x, y: e.clientY - state.pan.y };
+        }
+      });
+
+      window.addEventListener('mousemove', (e) => {
+        if (state.isPanning) {
+          state.pan.x = e.clientX - state.panStart.x;
+          state.pan.y = e.clientY - state.panStart.y;
+          updateTransform();
+        }
+
+        if (state.isConnecting && state.connectingFromId) {
+          const from = getCenterCoordinates(state.connectingFromId);
+          const rect = canvasContainer.getBoundingClientRect();
+          
+          // Calculate precise canvas-relative mouse coordinates without coordinate shift
+          const mouseCanvasX = (e.clientX - rect.left - state.pan.x) / state.zoom;
+          const mouseCanvasY = (e.clientY - rect.top - state.pan.y) / state.zoom;
+          
+          svgDraftLine.setAttribute('d', `M ${from.x} ${from.y} L ${mouseCanvasX} ${mouseCanvasY}`);
+        }
+      });
+
+      window.addEventListener('mouseup', () => {
+        state.isPanning = false;
+      });
+
+      // Context Menu Action Listeners
+      document.getElementById('ctx-node-gen-java').addEventListener('click', () => {
+        if (state.activeNodeId) {
+          const node = state.nodes.find(n => n.id === state.activeNodeId);
+          if (node) showCodeModal('java', generateJavaCode([node]));
+        }
+        closeContextMenus();
+      });
+
+      document.getElementById('ctx-node-gen-cpp').addEventListener('click', () => {
+        if (state.activeNodeId) {
+          const node = state.nodes.find(n => n.id === state.activeNodeId);
+          if (node) showCodeModal('cpp', generateCppCode([node]));
+        }
+        closeContextMenus();
+      });
+
+      document.getElementById('ctx-node-edit').addEventListener('click', () => {
+        if (state.activeNodeId) openEditModal(state.activeNodeId);
+        closeContextMenus();
+      });
+
+      document.getElementById('ctx-node-delete').addEventListener('click', () => {
+        if (state.activeNodeId) {
+          state.nodes = state.nodes.filter(n => n.id !== state.activeNodeId);
+          state.connections = state.connections.filter(c => c.fromId !== state.activeNodeId && c.toId !== state.activeNodeId);
+          state.activeNodeId = null;
+          renderNodes();
+          showToast('Class deleted', 'success');
+        }
+        closeContextMenus();
+      });
+
+      document.getElementById('ctx-conn-multi-11').addEventListener('click', () => {
+        if (state.activeConnId) {
+          const conn = state.connections.find(c => c.id === state.activeConnId);
+          if (conn) conn.multiplicity = '1-1';
+          renderConnections();
+        }
+        closeContextMenus();
+      });
+
+      document.getElementById('ctx-conn-multi-1n-array').addEventListener('click', () => {
+        if (state.activeConnId) {
+          const conn = state.connections.find(c => c.id === state.activeConnId);
+          if (conn) conn.multiplicity = '1-n-array';
+          renderConnections();
+        }
+        closeContextMenus();
+      });
+
+      document.getElementById('ctx-conn-multi-1n-list').addEventListener('click', () => {
+        if (state.activeConnId) {
+          const conn = state.connections.find(c => c.id === state.activeConnId);
+          if (conn) conn.multiplicity = '1-n-list';
+          renderConnections();
+        }
+        closeContextMenus();
+      });
+
+      document.getElementById('ctx-conn-delete').addEventListener('click', () => {
+        deleteSelectedConnection();
+        closeContextMenus();
+      });
+
+      // Top Toolbar Exports & Controls
+      document.getElementById('btn-export-java')?.addEventListener('click', () => {
+        showCodeModal('java', generateJavaCode(state.nodes));
+      });
+
+      document.getElementById('btn-export-cpp')?.addEventListener('click', () => {
+        showCodeModal('cpp', generateCppCode(state.nodes));
+      });
+
+      document.getElementById('btn-export-pdf')?.addEventListener('click', exportToPdf);
+
+      document.getElementById('btn-save-json')?.addEventListener('click', () => {
+        const json = JSON.stringify({ nodes: state.nodes, connections: state.connections }, null, 2);
+        const blob = new Blob([json], { type: 'application/json' });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = 'uml-diagram.json';
+        a.click();
+        showToast('Diagram downloaded as JSON', 'success');
+      });
+
+      document.getElementById('file-input-json').addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          try {
+            const data = JSON.parse(event.target.result);
+            if (Array.isArray(data.nodes) && Array.isArray(data.connections)) {
+              state.nodes = data.nodes;
+              state.connections = data.connections;
+              renderNodes();
+              showToast('Diagram loaded successfully!', 'success');
+            }
+          } catch (err) {
+            showToast('Failed to parse JSON diagram file', 'error');
+          }
+        };
+        reader.readAsText(file);
+      });
+
+      // Diagram Rules Modal Listeners
+      document.getElementById('btn-show-rules').addEventListener('click', () => {
+        document.getElementById('modal-diagram-rules').classList.remove('hidden');
+      });
+      document.getElementById('btn-close-rules-modal').addEventListener('click', () => {
+        document.getElementById('modal-diagram-rules').classList.add('hidden');
+      });
+
+      document.getElementById('btn-evaluate').addEventListener('click', evaluateDiagram);
+      document.getElementById('btn-close-eval-panel').addEventListener('click', () => {
+        document.getElementById('evaluation-panel').classList.add('hidden');
+      });
+
+      document.getElementById('btn-theme-toggle').addEventListener('click', () => {
+        document.documentElement.classList.toggle('dark');
+      });
+
+      // Mobile Drawer Toggle
+      document.getElementById('btn-toggle-sidebar').addEventListener('click', () => {
+        document.getElementById('sidebar-drawer').classList.remove('-translate-x-full');
+      });
+
+      document.getElementById('btn-close-sidebar').addEventListener('click', () => {
+        document.getElementById('sidebar-drawer').classList.add('-translate-x-full');
+      });
+
+      // Global Click Outside Context Menus
+      window.addEventListener('click', (e) => {
+        if (!e.target.closest('#context-menu-node') && !e.target.closest('#context-menu-conn')) {
+          closeContextMenus();
+        }
+      });
+    });
+
+    // CLASS EDIT MODAL LOGIC
+    function openEditModal(nodeId) {
+      state.editingNodeId = nodeId;
+      const node = state.nodes.find(n => n.id === nodeId);
+      if (!node) return;
+
+      document.getElementById('input-node-name').value = node.name;
+      document.getElementById('select-node-type').value = node.type;
+
+      renderModalFields(node.fields);
+      renderModalMethods(node.methods);
+
+      document.getElementById('modal-edit-class').classList.remove('hidden');
+    }
+
+    function closeEditModal() {
+      document.getElementById('modal-edit-class').classList.add('hidden');
+      state.editingNodeId = null;
+    }
+
+    function renderModalFields(fields) {
+      const container = document.getElementById('fields-container');
+      container.innerHTML = fields.map((f, i) => `
+        <div class="flex items-center space-x-1.5" data-field-index="${i}">
+          <select class="field-access p-1 bg-slate-100 dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded text-xs">
+            <option value="+" ${f.access === '+' ? 'selected' : ''}>+ (public)</option>
+            <option value="-" ${f.access === '-' ? 'selected' : ''}>- (private)</option>
+            <option value="#" ${f.access === '#' ? 'selected' : ''}># (protected)</option>
+          </select>
+          <input type="text" class="field-name p-1 bg-slate-100 dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded text-xs flex-1" value="${escapeHtml(f.name)}" placeholder="Name">
+          <input type="text" class="field-type p-1 bg-slate-100 dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded text-xs w-24" value="${escapeHtml(f.type)}" placeholder="Type">
+          <button class="btn-remove-field p-1 text-rose-500 hover:text-rose-700" onclick="this.parentElement.remove()">
+            <i class="fa-solid fa-trash-can"></i>
+          </button>
+        </div>
+      `).join('');
+    }
+
+    function renderModalMethods(methods) {
+      const container = document.getElementById('methods-container');
+      container.innerHTML = methods.map((m, i) => `
+        <div class="flex items-center space-x-1.5" data-method-index="${i}">
+          <select class="method-access p-1 bg-slate-100 dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded text-xs">
+            <option value="+" ${m.access === '+' ? 'selected' : ''}>+ (public)</option>
+            <option value="-" ${m.access === '-' ? 'selected' : ''}>- (private)</option>
+            <option value="#" ${m.access === '#' ? 'selected' : ''}># (protected)</option>
+          </select>
+          <input type="text" class="method-name p-1 bg-slate-100 dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded text-xs flex-1" value="${escapeHtml(m.name)}" placeholder="Name">
+          <input type="text" class="method-return p-1 bg-slate-100 dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded text-xs w-24" value="${escapeHtml(m.returnType)}" placeholder="Return">
+          <button class="btn-remove-method p-1 text-rose-500 hover:text-rose-700" onclick="this.parentElement.remove()">
+            <i class="fa-solid fa-trash-can"></i>
+          </button>
+        </div>
+      `).join('');
+    }
+
+    document.getElementById('btn-add-field-row').addEventListener('click', () => {
+      const container = document.getElementById('fields-container');
+      const div = document.createElement('div');
+      div.className = "flex items-center space-x-1.5";
+      div.innerHTML = `
+        <select class="field-access p-1 bg-slate-100 dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded text-xs">
+          <option value="+">+ (public)</option>
+          <option value="-" selected>- (private)</option>
+          <option value="#"># (protected)</option>
+        </select>
+        <input type="text" class="field-name p-1 bg-slate-100 dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded text-xs flex-1" placeholder="attributeName">
+        <input type="text" class="field-type p-1 bg-slate-100 dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded text-xs w-24" value="String" placeholder="Type">
+        <button class="btn-remove-field p-1 text-rose-500 hover:text-rose-700" onclick="this.parentElement.remove()">
+          <i class="fa-solid fa-trash-can"></i>
+        </button>
+      `;
+      container.appendChild(div);
+    });
+
+    document.getElementById('btn-add-method-row').addEventListener('click', () => {
+      const container = document.getElementById('methods-container');
+      const div = document.createElement('div');
+      div.className = "flex items-center space-x-1.5";
+      div.innerHTML = `
+        <select class="method-access p-1 bg-slate-100 dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded text-xs">
+          <option value="+" selected>+ (public)</option>
+          <option value="-">- (private)</option>
+          <option value="#"># (protected)</option>
+        </select>
+        <input type="text" class="method-name p-1 bg-slate-100 dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded text-xs flex-1" placeholder="operationName">
+        <input type="text" class="method-return p-1 bg-slate-100 dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded text-xs w-24" value="void" placeholder="Return">
+        <button class="btn-remove-method p-1 text-rose-500 hover:text-rose-700" onclick="this.parentElement.remove()">
+          <i class="fa-solid fa-trash-can"></i>
+        </button>
+      `;
+      container.appendChild(div);
+    });
+
+    document.getElementById('btn-close-modal').addEventListener('click', closeEditModal);
+    document.getElementById('btn-cancel-modal').addEventListener('click', closeEditModal);
+
+    document.getElementById('btn-save-modal').addEventListener('click', () => {
+      if (!state.editingNodeId) return;
+      const node = state.nodes.find(n => n.id === state.editingNodeId);
+      if (!node) return;
+
+      node.name = document.getElementById('input-node-name').value.trim() || node.name;
+      node.type = document.getElementById('select-node-type').value;
+
+      const fields = [];
+      document.querySelectorAll('#fields-container > div').forEach(row => {
+        const name = row.querySelector('.field-name')?.value.trim();
+        const type = row.querySelector('.field-type')?.value.trim() || 'void';
+        const access = row.querySelector('.field-access')?.value || '-';
+        if (name) fields.push({ id: generateId('f'), name, type, access });
+      });
+      node.fields = fields;
+
+      const methods = [];
+      document.querySelectorAll('#methods-container > div').forEach(row => {
+        const name = row.querySelector('.method-name')?.value.trim();
+        const returnType = row.querySelector('.method-return')?.value.trim() || 'void';
+        const access = row.querySelector('.method-access')?.value || '+';
+        if (name) methods.push({ id: generateId('m'), name, returnType, access });
+      });
+      node.methods = methods;
+
+      closeEditModal();
+      renderNodes();
+      showToast(`Updated specification for ${node.name}`, 'success');
+    });
+
+    // CODE GENERATOR LOGIC
+    function showCodeModal(lang, code) {
+      const modal = document.getElementById('modal-code-preview');
+      const title = document.getElementById('code-modal-title');
+      const icon = document.getElementById('code-lang-icon');
+      const output = document.getElementById('code-output');
+
+      if (lang === 'java') {
+        title.textContent = 'Generated Java Code';
+        icon.innerHTML = '<i class="fa-brands fa-java text-sky-600"></i>';
+      } else {
+        title.textContent = 'Generated C++ Code';
+        icon.innerHTML = '<i class="fa-solid fa-code text-indigo-600"></i>';
+      }
+
+      output.textContent = code;
+      modal.classList.remove('hidden');
+    }
+
+    document.getElementById('btn-close-code-modal').addEventListener('click', () => {
+      document.getElementById('modal-code-preview').classList.add('hidden');
+    });
+
+    document.getElementById('btn-copy-code').addEventListener('click', () => {
+      const code = document.getElementById('code-output').textContent;
+      const ta = document.createElement('textarea');
+      ta.value = code;
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand('copy');
+      document.body.removeChild(ta);
+      showToast('Code copied to clipboard!', 'success');
+    });
+
+    function generateJavaCode(nodesToGen) {
+      let code = `// Automatically generated by UML Class Studio\n// Date: ${new Date().toLocaleDateString()}\n\nimport java.util.*;\n\n`;
+
+      nodesToGen.forEach(node => {
+        // Find inheritance / implementation connections
+        const inheritsConn = state.connections.find(c => c.fromId === node.id && c.type === 'inheritance');
+        const parentClass = inheritsConn ? state.nodes.find(n => n.id === inheritsConn.toId) : null;
+
+        const implConns = state.connections.filter(c => c.fromId === node.id && c.type === 'implementation');
+        const interfaces = implConns.map(c => state.nodes.find(n => n.id === c.toId)).filter(Boolean);
+
+        let header = 'public ';
+        if (node.type === 'abstract') header += 'abstract class ';
+        else if (node.type === 'interface') header += 'interface ';
+        else header += 'class ';
+
+        header += node.name;
+
+        if (parentClass) header += ` extends ${parentClass.name}`;
+        if (interfaces.length > 0) {
+          header += ` implements ${interfaces.map(i => i.name).join(', ')}`;
+        }
+
+        code += `${header} {\n`;
+
+        // Attributes
+        node.fields.forEach(f => {
+          let acc = f.access === '+' ? 'public' : f.access === '#' ? 'protected' : 'private';
+          code += `    ${acc} ${f.type} ${f.name};\n`;
+        });
+
+        // Aggregation / Composition field references
+        state.connections.filter(c => c.fromId === node.id && (c.type === 'aggregation' || c.type === 'composition')).forEach(c => {
+          const target = state.nodes.find(n => n.id === c.toId);
+          if (target) {
+            if (c.multiplicity === '1-n-list') {
+              code += `    private List<${target.name}> ${target.name.toLowerCase()}List = new ArrayList<>();\n`;
+            } else if (c.multiplicity === '1-n-array') {
+              code += `    private ${target.name}[] ${target.name.toLowerCase()}Array;\n`;
+            } else {
+              code += `    private ${target.name} ${target.name.toLowerCase()};\n`;
+            }
+          }
+        });
+
+        if (node.fields.length > 0) code += `\n`;
+
+        // Constructor
+        if (node.type !== 'interface') {
+          code += `    public ${node.name}() {\n        // Default Constructor\n    }\n\n`;
+        }
+
+        // Methods
+        node.methods.forEach(m => {
+          let acc = m.access === '+' ? 'public' : m.access === '#' ? 'protected' : 'private';
+          if (node.type === 'interface') {
+            code += `    ${acc} ${m.returnType} ${m.name}();\n`;
+          } else {
+            let ret = m.returnType === 'void' ? '' : m.returnType === 'boolean' ? 'return false;' : 'return null;';
+            code += `    ${acc} ${m.returnType} ${m.name}() {\n        ${ret}\n    }\n\n`;
+          }
+        });
+
+        code += `}\n\n`;
+      });
+
+      return code;
+    }
+
+    function generateCppCode(nodesToGen) {
+      let code = `// Automatically generated by UML Class Studio\n// Date: ${new Date().toLocaleDateString()}\n\n#include <iostream>\n#include <string>\n#include <vector>\n\n`;
+
+      nodesToGen.forEach(node => {
+        const inheritsConn = state.connections.find(c => c.fromId === node.id && (c.type === 'inheritance' || c.type === 'implementation'));
+        const parentClass = inheritsConn ? state.nodes.find(n => n.id === inheritsConn.toId) : null;
+
+        let header = `class ${node.name}`;
+        if (parentClass) header += ` : public ${parentClass.name}`;
+        code += `${header} {\n`;
+
+        // Group fields and methods by access modifier
+        ['private', 'protected', 'public'].forEach(accName => {
+          const sym = accName === 'public' ? '+' : accName === 'protected' ? '#' : '-';
+          const fieldsAcc = node.fields.filter(f => f.access === sym);
+          const methodsAcc = node.methods.filter(m => m.access === sym);
+
+          if (fieldsAcc.length > 0 || methodsAcc.length > 0 || accName === 'public') {
+            code += `${accName}:\n`;
+
+            if (accName === 'public' && node.type !== 'interface') {
+              code += `    ${node.name}() {}\n`;
+              code += `    virtual ~${node.name}() {}\n`;
+            }
+
+            fieldsAcc.forEach(f => {
+              code += `    ${f.type} ${f.name};\n`;
+            });
+
+            methodsAcc.forEach(m => {
+              const isVirt = node.type === 'interface' || node.type === 'abstract' ? 'virtual ' : '';
+              const pureVirt = node.type === 'interface' ? ' = 0' : '';
+              const body = node.type === 'interface' ? ';' : ' {}';
+              code += `    ${isVirt}${m.returnType} ${m.name}()${pureVirt}${body}\n`;
+            });
+          }
+        });
+
+        code += `};\n\n`;
+      });
+
+      return code;
+    }
+
+    function exportToPdf() {
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF({ orientation: 'landscape' });
+
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(16);
+      doc.text('UML Class Diagram Specification', 14, 15);
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'normal');
+      doc.text(`Export Date: ${new Date().toLocaleString()}`, 14, 22);
+
+      let yPos = 32;
+
+      state.nodes.forEach((node, idx) => {
+        if (yPos > 170) {
+          doc.addPage();
+          yPos = 20;
+        }
+
+        doc.setFillColor(240, 249, 255);
+        doc.rect(14, yPos, 268, 8, 'F');
+        doc.setFont('helvetica', 'bold');
+        doc.text(`${idx + 1}. ${node.type.toUpperCase()}: ${node.name}`, 16, yPos + 5.5);
+        yPos += 12;
+
+        doc.setFont('helvetica', 'normal');
+        doc.text(`Fields: ${node.fields.map(f => `${f.access}${f.name}:${f.type}`).join(', ') || 'None'}`, 20, yPos);
+        yPos += 6;
+        doc.text(`Methods: ${node.methods.map(m => `${m.access}${m.name}():${m.returnType}`).join(', ') || 'None'}`, 20, yPos);
+        yPos += 10;
+      });
+
+      doc.save('uml-class-diagram.pdf');
+      showToast('Exported diagram specification to PDF', 'success');
+    }
+
+    // DIAGNOSTIC DIAGRAM EVALUATOR
+    function evaluateDiagram() {
+      state.nodeViolations = {};
+      const issues = [];
+
+      state.nodes.forEach(node => {
+        const nodeIssues = [];
+
+        // Rule 1: Abstract class must have at least one child class extending it
+        if (node.type === 'abstract') {
+          const childExtends = state.connections.some(c => c.toId === node.id && c.type === 'inheritance');
+          if (!childExtends) {
+            nodeIssues.push({
+              code: 'RULE_1',
+              title: 'Abstract Class Missing Subclass',
+              desc: `Abstract class "${node.name}" is not extended by any child class.`
+            });
+          }
+        }
+
+        // Rule 2: Interface must be implemented by at least one class
+        if (node.type === 'interface') {
+          const isImplemented = state.connections.some(c => c.toId === node.id && c.type === 'implementation');
+          if (!isImplemented) {
+            nodeIssues.push({
+              code: 'RULE_2',
+              title: 'Unimplemented Interface',
+              desc: `Interface "${node.name}" is not implemented by any concrete class.`
+            });
+          }
+        }
+
+        // Rule 3: Interface methods must be implemented in concrete classes
+        if (node.type === 'interface') {
+          const implementingConns = state.connections.filter(c => c.toId === node.id && c.type === 'implementation');
+          implementingConns.forEach(conn => {
+            const concreteClass = state.nodes.find(n => n.id === conn.fromId);
+            if (concreteClass && concreteClass.type === 'class') {
+              node.methods.forEach(im => {
+                const hasMethod = concreteClass.methods.some(cm => cm.name === im.name);
+                if (!hasMethod) {
+                  nodeIssues.push({
+                    code: 'RULE_3',
+                    title: 'Missing Interface Method',
+                    desc: `Class "${concreteClass.name}" implements "${node.name}" but lacks required method "${im.name}()".`
+                  });
+                }
+              });
+            }
+          });
+        }
+
+        // Rule 4: Circular Inheritance Check
+        if (node.type === 'class' || node.type === 'abstract') {
+          let currentId = node.id;
+          const visited = new Set();
+          while (currentId) {
+            if (visited.has(currentId)) {
+              nodeIssues.push({
+                code: 'RULE_4',
+                title: 'Circular Inheritance Detected',
+                desc: `Class "${node.name}" is trapped in a circular inheritance loop!`
+              });
+              break;
+            }
+            visited.add(currentId);
+            const parentConn = state.connections.find(c => c.fromId === currentId && c.type === 'inheritance');
+            currentId = parentConn ? parentConn.toId : null;
+          }
+        }
+
+        // Rule 5: Multiple Inheritance Warning for standard classes
+        const parentConns = state.connections.filter(c => c.fromId === node.id && c.type === 'inheritance');
+        if (parentConns.length > 1) {
+          nodeIssues.push({
+            code: 'RULE_5',
+            title: 'Multiple Inheritance Violation',
+            desc: `Class "${node.name}" extends multiple classes (${parentConns.length}). Most languages (like Java) do not support this.`
+          });
+        }
+
+        // Rule 6: Aggregation & Composition Method Dependency Check
+        const aggCompConns = state.connections.filter(c => c.type === 'aggregation' || c.type === 'composition');
+        
+        aggCompConns.forEach(conn => {
+          // Identify the aggregate owner (fromId holds the diamond marker, e.g. Student) vs component (toId, e.g. Department)
+          const ownerId = conn.fromId;
+          const componentId = conn.toId;
+
+          // Evaluate Rule 6 exclusively on the aggregate owner class (Student)
+          if (node.id === ownerId) {
+            const componentNode = state.nodes.find(n => n.id === componentId);
+            
+            if (componentNode) {
+              const compNameLower = componentNode.name.toLowerCase();
+
+              // 1. Check if Aggregate Owner has a field referencing the Component class
+              const hasFieldRef = node.fields.some(f => 
+                f.type.toLowerCase().includes(compNameLower) || 
+                f.name.toLowerCase().includes(compNameLower)
+              );
+
+              // 2. Count interaction methods in the Aggregate Owner class
+              const actionKeywords = ['show', 'register', 'assign', 'remove', 'update', 'get', 'set', 'change', 'list', 'add', 'clear', 'calc', 'calculate', 'process', 'detail'];
+              const relevantMethods = node.methods.filter(m => {
+                const nameLower = m.name.toLowerCase();
+                const returnLower = (m.returnType || '').toLowerCase();
+                const containsCompName = nameLower.includes(compNameLower) || returnLower.includes(compNameLower);
+                const matchesKeyword = actionKeywords.some(kw => nameLower.includes(kw));
+                return containsCompName || matchesKeyword;
+              });
+
+              if (!hasFieldRef) {
+                nodeIssues.push({
+                  code: 'RULE_6_FIELD',
+                  title: `${conn.type.toUpperCase()} Field Reference Missing`,
+                  desc: `Class "${node.name}" aggregates "${componentNode.name}" but lacks a member field referencing "${componentNode.name}".`
+                });
+              }
+
+              if (relevantMethods.length < 5) {
+                const relLabel = conn.type === 'aggregation' ? 'aggregates' : 'composes';
+                nodeIssues.push({
+                  code: 'RULE_6_METHODS',
+                  title: `${conn.type.toUpperCase()} Method Threshold Unmet`,
+                  desc: `Class "${node.name}" ${relLabel} "${componentNode.name}" but has only ${relevantMethods.length}/5 required operations.`
+                });
+              }
+            }
+          }
+        });
+
+        if (nodeIssues.length > 0) {
+          state.nodeViolations[node.id] = nodeIssues;
+          issues.push(...nodeIssues);
+        }
+      });
+
+      // Render Diagnostic Results to UI
+      renderNodes(); // Highlight violated classes with red border badge
+
+      const issuesList = document.getElementById('eval-issues-list');
+      const flaggedCount = document.getElementById('eval-flagged-count');
+      const evalPanel = document.getElementById('evaluation-panel');
+
+      flaggedCount.textContent = Object.keys(state.nodeViolations).length;
+      issuesList.innerHTML = '';
+
+      if (issues.length === 0) {
+        issuesList.innerHTML = `
+          <div class="p-4 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-900 rounded-lg text-emerald-800 dark:text-emerald-200 text-center">
+            <i class="fa-solid fa-circle-check text-2xl text-emerald-500 mb-1"></i>
+            <div class="font-bold text-xs">Diagram Validated!</div>
+            <p class="text-[11px] opacity-80 mt-1">No structural or relationship rule violations found.</p>
+          </div>
+        `;
+      } else {
+        issues.forEach(issue => {
+          const div = document.createElement('div');
+          div.className = "p-2.5 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/60 rounded-lg text-xs space-y-1";
+          div.innerHTML = `
+            <div class="font-bold text-rose-800 dark:text-rose-200 flex items-center justify-between">
+              <span>${escapeHtml(issue.title)}</span>
+              <span class="px-1.5 py-0.5 bg-rose-200/60 dark:bg-rose-900 text-[9px] font-mono rounded">${issue.code}</span>
+            </div>
+            <p class="text-[11px] text-rose-600 dark:text-rose-300 leading-snug">${escapeHtml(issue.desc)}</p>
+          `;
+          issuesList.appendChild(div);
+        });
+      }
+
+      evalPanel.classList.remove('hidden');
+      showToast(`Evaluation completed. ${issues.length} diagnostic issue(s) flagged.`, issues.length > 0 ? 'error' : 'success');
+    }
+  </script>
+</body>
+</html>
